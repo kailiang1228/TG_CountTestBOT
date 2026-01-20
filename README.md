@@ -25,13 +25,13 @@
 
 3. 執行機器人：
    ```bash
-   python Bot.py
+   python TG_Bot
    ```
 
 ## 部署到 Zeabur
 
 ### 1. 準備 GitHub Repository
-確保此資料夾內已有 `requirements.txt` 和 `Bot.py`，並推送到 GitHub。
+確保此資料夾內已有 `requirements.txt` 和 `TG_Bot`，並推送到 GitHub。
 
 ### 2. 在 Zeabur 建立服務
 1. 登入 [Zeabur Dashboard](https://dash.zeabur.com)。
@@ -43,8 +43,8 @@
 
 | Key | Value |
 | -- | -- |
-| `TELEGRAM_TOKEN` | `825xxxxxxxx...` (你的 Bot Token) |
-| `TELEGRAM_CHAT_ID` | `567xxxxxxx` (你的 Chat ID) |
+| `TELEGRAM_TOKEN` |(你的 Bot Token) |
+| `TELEGRAM_CHAT_ID` |(你的 Chat ID) |
 
 > 注意：不要將 `.env` 檔案上傳到 GitHub，請直接在 Zeabur 後台設定。
 
@@ -53,8 +53,8 @@
 - `TZ` = `Asia/Taipei`
 
 ### 5. 確保運作
-Zeabur 預設會執行 `python main.py`，如果找不到會嘗試 `python Bot.py` (或是看它如何偵測)。
+Zeabur 預設會執行 `python main.py`，如果找不到會嘗試 `python TG_Bot` (或是看它如何偵測)。
 如果啟動失敗，請在 Zeabur 的 **Settings -> Service Name** 修改 **Start Command** 為：
 ```bash
-python Bot.py
+python TG_Bot
 ```
