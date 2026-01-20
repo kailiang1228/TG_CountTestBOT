@@ -43,8 +43,8 @@
 
 | Key | Value |
 | -- | -- |
-| `TELEGRAM_TOKEN` | `825xxxxxxxx...` (你的 Bot Token) |
-| `TELEGRAM_CHAT_ID` | `567xxxxxxx` (你的 Chat ID) |
+| `TELEGRAM_TOKEN` | (你的 Bot Token) |
+| `TELEGRAM_CHAT_ID` | (你的 Chat ID) |
 
 > 注意：不要將 `.env` 檔案上傳到 GitHub，請直接在 Zeabur 後台設定。
 
