@@ -5,10 +5,18 @@ import datetime
 import pytz
 import os
 import sys
+import logging
 from dotenv import load_dotenv
 
 # 載入環境變數 (本地開發用)
 load_dotenv()
+
+# 設定 Logging (輸出到 stdout，方便雲端環境查看 Logs)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 # 設定 (優先讀取環境變數)
 TOKEN = os.getenv('TELEGRAM_TOKEN', 'YOUR_TOKEN_HERE')
@@ -37,15 +45,12 @@ def calculate_message():
     today = now.date()
     lines = ["研究所筆試倒數："]
     
-    # 判斷是否還有任何考試在未來，如果都考完了就回傳 None 或提示
+    # 判斷是否還有任何考試在未來
     active_exams_count = 0
 
     for school, (month, day) in EXAM_DATES.items():
         # 計算考試日期 (假設是今年)
         try:
-            # 這裡簡單假設考試年份就是現在年份
-            # 如果現在是 12 月而考試在 2 月，通常是指隔年，但這裡先以「當年度邏輯」或「跨年邏輯」處理
-            # 您的情境是 2026/01/20，考試在 2 月，所以是 same year
             target_date = datetime.date(now.year, month, day)
         except ValueError: # 閏年處理
             target_date = datetime.date(now.year, month, day)
@@ -53,7 +58,7 @@ def calculate_message():
         # 計算天數差
         days_left = (target_date - today).days
 
-        # 如果 days_left < 0 代表考過了，依需求不輸出
+        # 如果 days_left < 0 代表考過了，不輸出
         if days_left < 0:
             continue
             
@@ -66,34 +71,33 @@ def calculate_message():
             lines.append(f"{school}：{date_str}（倒數{days_left}天）")
 
     if active_exams_count == 0:
-        return "所有考試皆已結束！恭喜解脫或是...下次加油？"
+        return "所有考試皆已結束！"
 
     lines.append(".")
     lines.append(".")
-    lines.append("這個時間點還在滑手機？會當兵的")
+    lines.append("這個時間還在滑手機？會當兵的")
     return "\n".join(lines)
 
 def send_telegram(text):
     if not TOKEN or not CHAT_ID:
-        print("錯誤: 未設定 TOKEN 或 CHAT_ID")
+        logging.error("錯誤: 未設定 TELEGRAM_TOKEN 或 TELEGRAM_CHAT_ID")
         return
 
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text}
     try:
-        requests.post(url, json=payload, timeout=10)
-        print(f"[{get_tw_now()}] 訊息發送成功", flush=True)
+        logging.info(f"準備發送訊息，目標 Chat ID: {CHAT_ID}")
+        resp = requests.post(url, json=payload, timeout=10)
+        resp.raise_for_status() # 檢查 HTTP 錯誤
+        logging.info("訊息發送成功")
     except Exception as e:
-        print(f"發送失敗: {e}", flush=True)
+        logging.error(f"發送失敗: {e}")
 
 def get_seconds_until_next_run():
     now = get_tw_now()
     # 尋找今天稍晚的執行時間
     for h in sorted(SEND_HOURS):
-        # 設定目標為今天的該小時 0分 0秒
         target = now.replace(hour=h, minute=0, second=0, microsecond=0)
-        
-        # 如果目標時間比現在晚，這就是下一個時間點
         if target > now:
             return (target - now).total_seconds()
 
@@ -103,25 +107,40 @@ def get_seconds_until_next_run():
     return (target - now).total_seconds()
 
 def main():
-    print(f"已啟動。目標 Chat ID: {CHAT_ID}", flush=True)
+    logging.info("程式啟動中...")
+    logging.info(f"目前時間 (TW): {get_tw_now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # 剛啟動時先檢查一次是否要補發？
-    # 或者直接進入排程模式。通常雲端重啟頻繁，直接進入排程較安全，避免一直發。
+    if not TOKEN or "YOUR_TOKEN" in TOKEN:
+         logging.warning("⚠️ 警告: TELEGRAM_TOKEN 尚未設定正確")
     
+    logging.info(f"設定排程時間點 (24h): {SEND_HOURS}")
+    logging.info("開始進入排程迴圈...")
+
     while True:
-        wait_seconds = get_seconds_until_next_run()
-        next_run_time = get_tw_now() + datetime.timedelta(seconds=wait_seconds)
-        print(f"[{get_tw_now()}] 下次發送時間: {next_run_time.strftime('%Y-%m-%d %H:%M:%S')} (約 {wait_seconds / 60:.1f} 分鐘後)", flush=True)
+        try:
+            wait_seconds = get_seconds_until_next_run()
+            next_run_time = get_tw_now() + datetime.timedelta(seconds=wait_seconds)
+            
+            logging.info(f"下次發送時間: {next_run_time.strftime('%Y-%m-%d %H:%M:%S')} (約 {wait_seconds / 60:.1f} 分鐘後)")
+            logging.info("進入休眠...")
 
-        time.sleep(wait_seconds)
+            time.sleep(wait_seconds)
 
-        # 醒來後再次確認時間是否正確 (避免 sleep 提早醒來的極端狀況，或確保真的到了整點)
-        # 這裡直接執行，因為 calculate_message 會根據當下日期計算
-        msg = calculate_message()
-        send_telegram(msg)
+            # 醒來後執行
+            logging.info("休眠結束，開始執行任務")
+            msg = calculate_message()
+            send_telegram(msg)
 
-        # 避免在同一秒內重複觸發，休息一下
-        time.sleep(5)
+            # 避免在同一秒內重複觸發
+            time.sleep(5)
+
+        except KeyboardInterrupt:
+            logging.info("接收到停止訊號，程式結束")
+            break
+        except Exception as e:
+            logging.error(f"發生未預期的錯誤: {e}", exc_info=True)
+            logging.info("為防止崩潰，等待 60 秒後重試...")
+            time.sleep(60)
 
 if __name__ == "__main__":
     main()
