@@ -42,33 +42,37 @@ def get_tw_now():
 
 def calculate_message():
     now = get_tw_now()
-    today = now.date()
     lines = ["研究所筆試倒數："]
     
     # 判斷是否還有任何考試在未來
     active_exams_count = 0
 
     for school, (month, day) in EXAM_DATES.items():
-        # 計算考試日期 (假設是今年)
+        # 計算考試日期 (假設是今年，考試當天的 00:00:00)
         try:
-            target_date = datetime.date(now.year, month, day)
+            target_datetime = datetime.datetime(now.year, month, day, 0, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
         except ValueError: # 閏年處理
-            target_date = datetime.date(now.year, month, day)
+            target_datetime = datetime.datetime(now.year, month, day, 0, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
 
-        # 計算天數差
-        days_left = (target_date - today).days
-
-        # 如果 days_left < 0 代表考過了，不輸出
-        if days_left < 0:
+        # 計算時間差
+        time_diff = target_datetime - now
+        
+        # 如果已經過了考試日期，不輸出
+        if time_diff.total_seconds() < 0:
             continue
             
         active_exams_count += 1
+        
+        # 計算剩餘天數和總小時數
+        days_left = time_diff.days
+        total_hours = int(time_diff.total_seconds() / 3600)
+        
         date_str = f"{month:02d}/{day:02d}"
 
         if school == "成大":
-            lines.append(f"{school}：{date_str} - 02/04（倒數{days_left}天）")
+            lines.append(f"{school}：{date_str} - 02/04（倒數{days_left}天 / {total_hours}小時）")
         else:
-            lines.append(f"{school}：{date_str}（倒數{days_left}天）")
+            lines.append(f"{school}：{date_str}（倒數{days_left}天 / {total_hours}小時）")
 
     if active_exams_count == 0:
         return "所有考試皆已結束！"
