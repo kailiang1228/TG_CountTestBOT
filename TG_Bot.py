@@ -22,16 +22,16 @@ logging.basicConfig(
 TOKEN = os.getenv('TELEGRAM_TOKEN', 'YOUR_TOKEN_HERE')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', 'YOUR_CHAT_ID_HERE')
 
-# 考試日期
+# 考試日期 (月, 日, 時)
 EXAM_DATES = {
-    "台科大": (2, 1),
-    "台聯大": (2, 2),
-    "成大": (2, 3), 
-    "中興": (2, 6),
-    "中山": (2, 7),
-    "中央": (2, 9),
-    "中正": (2, 11),
-    "北科大": (3, 8),
+    "台科大": (2, 1, 13),
+    "台聯大": (2, 2, 10),
+    "成大": (2, 3, 8), 
+    "中興": (2, 6, 8),
+    "中山": (2, 7, 8),
+    "中央": (2, 9, 9),
+    "中正": (2, 11, 13),
+    "北科大": (3, 8, 13),
 }
 
 # 發送時間點 (每日 07:00 ~ 23:00 整點發送)
@@ -47,12 +47,12 @@ def calculate_message():
     # 判斷是否還有任何考試在未來
     active_exams_count = 0
 
-    for school, (month, day) in EXAM_DATES.items():
-        # 計算考試日期 (假設是今年，考試當天的 00:00:00)
+    for school, (month, day, hour) in EXAM_DATES.items():
+        # 計算考試日期 (假設是今年)
         try:
-            target_datetime = datetime.datetime(now.year, month, day, 0, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
+            target_datetime = datetime.datetime(now.year, month, day, hour, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
         except ValueError: # 閏年處理
-            target_datetime = datetime.datetime(now.year, month, day, 0, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
+            target_datetime = datetime.datetime(now.year, month, day, hour, 0, 0, tzinfo=pytz.timezone('Asia/Taipei'))
 
         # 計算時間差
         time_diff = target_datetime - now
